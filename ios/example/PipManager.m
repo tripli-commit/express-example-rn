@@ -37,11 +37,11 @@ API_AVAILABLE(ios(15.0))
   self = [super init];
   if (self) {
     [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(handleApplicationWillEnterForeground:)
-                                                 name:UIApplicationWillEnterForegroundNotification object:nil];
+                                             selector:@selector(handleApplicationDidBecomeActive:)
+                                                 name:UIApplicationDidBecomeActiveNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self
-                                                 selector:@selector(handleApplicationDidEnterBackground:)
-                                                     name:UIApplicationDidEnterBackgroundNotification object:nil];
+                                             selector:@selector(handleApplicationDidEnterBackground:)
+                                                 name:UIApplicationDidEnterBackgroundNotification object:nil];
   }
   return self;
 }
@@ -162,18 +162,12 @@ API_AVAILABLE(ios(15.0))
     }
 }
 
-- (void)handleApplicationWillEnterForeground:(NSNotification *)notify {
-  NSLog(@"handleApplicationWillEnterForeground");
+- (void)handleApplicationDidBecomeActive:(NSNotification *)notify {
+  NSLog(@"handleApplicationDidBecomeActive");
   self.inBackground = NO;
-  
+
   if (self.pipControl.pictureInPictureActive) {
     [self.pipControl stopPictureInPicture];
-    __strong AVPictureInPictureController *oldPipControl = self.pipControl;
-    self.pipControl = [[AVPictureInPictureController alloc] initWithContentSource:oldPipControl.contentSource];
-    self.pipControl.delegate = self;
-    self.pipControl.canStartPictureInPictureAutomaticallyFromInline = YES;
-    [self.pipControl setValue:[NSNumber numberWithInt:1] forKey:@"controlsStyle"];
-    oldPipControl = NULL;
   }
 }
   
