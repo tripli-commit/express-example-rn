@@ -21,6 +21,10 @@ API_AVAILABLE(ios(15.0))
 @property (nonatomic, strong) KitRemoteView *pipPlayingView;
 @property (nonatomic, strong) AVSampleBufferDisplayLayer *pipPlayingLayer;
 
+// for preview
+@property (nonatomic, assign) ZegoViewMode previewViewMode;
+@property (nonatomic, strong) RCTView *rnPreviewView;
+@property (nonatomic, strong) AVSampleBufferDisplayLayer *rnPreviewLayer;
 
 @property (nonatomic, assign) BOOL inBackground;
 
@@ -112,6 +116,25 @@ API_AVAILABLE(ios(15.0))
   self.pipPlayingView = NULL;
 }
 
+- (void)startPreview:(RCTView *)rnPreviewView viewMode:(ZegoViewMode)viewMode {
+  self.previewViewMode = viewMode;
+  
+  // 为 rn view 添加用于自定义渲染的 layer，没找到就添加一个
+  [self addRnLayerWithPreviewView:rnPreviewView];
+
+  [self enableCustomVideoRender];
+  
+  [[ZegoExpressEngine sharedEngine] startPreview];
+}
+
+- (void)stopPreview {
+  [[ZegoExpressEngine sharedEngine] stopPreview];
+  
+  [self.rnPreviewView removeObserver:self forKeyPath:@"bounds"];
+  self.rnPreviewLayer = NULL;
+  self.rnPreviewView = NULL;
+}
+
 - (void)notifyPagePipEnable:(BOOL)pipEnable pageName:(NSString *)pageName {
   if (!pipEnable) {
     [self.pipControl stopPictureInPicture];
@@ -177,6 +200,8 @@ API_AVAILABLE(ios(15.0))
       CGRect newBounds = [[change objectForKey:NSKeyValueChangeNewKey] CGRectValue];
       if (object == self.rnPlayingView) {
         self.rnPlayingLayer.frame = newBounds;
+      } else if (object == self.rnPreviewView) {
+        self.rnPreviewLayer.frame = newBounds;
       }
     }
 }
@@ -247,6 +272,25 @@ API_AVAILABLE(ios(15.0))
     }
 }
 
+- (void)onCapturedVideoFrameCVPixelBuffer:(CVPixelBufferRef)buffer
+                                    param:(ZegoVideoFrameParam *)param
+                                 flipMode:(ZegoVideoFlipMode)flipMode
+                                  channel:(ZegoPublishChannel)channel
+{
+    AVSampleBufferDisplayLayer *destLayer = self.rnPreviewLayer;
+
+    CMSampleBufferRef sampleBuffer = [self createSampleBuffer:buffer];
+    if (sampleBuffer) {
+        [destLayer enqueueSampleBuffer:sampleBuffer];
+        if (destLayer.status == AVQueuedSampleBufferRenderingStatusFailed) {
+            if (-11847 == destLayer.error.code) {
+                [self performSelectorOnMainThread:@selector(rebuildRnPreviewLayer) withObject:NULL waitUntilDone:YES];
+            }
+        }
+        CFRelease(sampleBuffer);
+    }
+}
+
 - (CMSampleBufferRef)createSampleBuffer:(CVPixelBufferRef)pixelBuffer
 {
     if (!pixelBuffer) {
@@ -299,6 +343,36 @@ API_AVAILABLE(ios(15.0))
   [self.rnPlayingView addObserver:self forKeyPath:@"bounds" options:NSKeyValueObservingOptionNew context:nil];
 }
 
+- (void)addRnLayerWithPreviewView:(RCTView *)rnView {
+  NSLog(@"addRnLayerWithPreviewView, frame: %@", NSStringFromCGRect(rnView.frame));
+  if (self.rnPreviewView != rnView) {
+    [self.rnPreviewView removeObserver:self forKeyPath:@"bounds"];
+    self.rnPreviewView = rnView;
+  } else {
+    self.rnPreviewLayer.frame = rnView.frame;
+  }
+  
+  BOOL isFoundLayer = FALSE;
+  for (CALayer *layer in self.rnPreviewView.layer.sublayers) {
+      if ([layer.name isEqualToString:kKitDisplayLayerName]) {
+        isFoundLayer = TRUE;
+        self.rnPreviewLayer = (AVSampleBufferDisplayLayer *)layer;
+        break;
+      }
+  }
+  
+  if (!isFoundLayer) {
+    self.rnPreviewLayer = [self createAVSampleBufferDisplayLayerWithViewMode:self.previewViewMode];
+    self.rnPreviewLayer.name = kKitDisplayLayerName;
+    [self.rnPreviewView.layer addSublayer:self.rnPreviewLayer];
+    self.rnPreviewLayer.frame = self.rnPreviewView.bounds;
+    
+    NSLog(@"add rnlayer: %@ in rnView: %@", self.rnPreviewLayer, self.rnPreviewView);
+  }
+  
+  [self.rnPreviewView addObserver:self forKeyPath:@"bounds" options:NSKeyValueObservingOptionNew context:nil];
+}
+
 - (void)rebuildRnPlayingLayer {
   NSLog(@"rebuildRnPlayingLayer");
 
@@ -309,6 +383,19 @@ API_AVAILABLE(ios(15.0))
     }
   
     [self addRnLayerWithPlayingView:self.rnPlayingView];
+  }
+}
+
+- (void)rebuildRnPreviewLayer {
+  NSLog(@"rebuildRnPreviewLayer");
+
+  @synchronized(self) {
+    if (self.rnPreviewLayer) {
+      [self.rnPreviewLayer removeFromSuperlayer];
+      self.rnPreviewLayer = nil;
+    }
+  
+    [self addRnLayerWithPreviewView:self.rnPreviewView];
   }
 }
 

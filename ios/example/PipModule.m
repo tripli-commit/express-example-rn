@@ -44,6 +44,23 @@ RCT_EXPORT_METHOD(stopPlayingStream:(NSDictionary *)map)
   });
 }
 
+RCT_EXPORT_METHOD(startPreview:(NSDictionary *)map)
+{
+  dispatch_async(dispatch_get_main_queue(), ^{
+    NSNumber *reactTag = map[@"reactTag"];
+    NSNumber *viewMode = map[@"viewMode"];
+    
+    RCTView *rctView = (RCTView *)[self->_bridge.uiManager viewForReactTag: reactTag];
+    
+    NSLog(@"[PipModule] startPreview, reactTag: %@, viewMode: %@, rnPlayingView: %@", reactTag, viewMode, rctView);
+    [[PipManager sharedInstance] startPreview:rctView viewMode:viewMode.unsignedIntValue];
+  });
+}
+
+RCT_EXPORT_METHOD(stopPreview) {
+  [[PipManager sharedInstance] stopPreview];
+}
+
 RCT_EXPORT_METHOD(addListener:(NSString *)eventName) {
   
 }

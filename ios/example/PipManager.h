@@ -14,6 +14,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)startPlayingStream:(NSString *)streamID rnPlayingView:(RCTView *)rnPlayingView viewMode:(ZegoViewMode)viewMode;
 - (void)stopPlayingStream:(NSString *)streamID;
 
+- (void)startPreview:(RCTView *)rnPreviewView viewMode:(ZegoViewMode)viewMode;
+- (void)stopPreview;
+
 - (void)notifyPagePipEnable:(BOOL)pipEnable pageName:(NSString *)pageName;
 
 @end

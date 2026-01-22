@@ -1,6 +1,6 @@
 import { NativeModules, NodeHandle, Platform } from 'react-native';
 import { getSystemVersion } from 'react-native-device-info';
-import ZegoExpressEngine, { ZegoViewMode } from 'zego-express-engine-reactnative';
+import ZegoExpressEngine, { ZegoPublishChannel, ZegoViewMode } from 'zego-express-engine-reactnative';
 
 const { PipModule } = NativeModules;
 
@@ -56,6 +56,29 @@ export default class StreamHelper {
         } else {
             console.log(this.TAG, `Express.stopPlayingStream: ${streamID}`)
             ZegoExpressEngine.instance().stopPlayingStream(streamID);
+        }
+    }
+
+    static startPreview = (reactTag: null | NodeHandle) => {
+        if (Platform.OS === 'ios' && this.isOsVersionGreaterOrEqualThan(15)) {
+            console.log(this.TAG, `PipModule.startPreview: ${reactTag}`)
+            PipModule.startPreview({reactTag: reactTag, viewMode: ZegoViewMode.AspectFill})
+        } else {
+            console.log(this.TAG, `Express.startPreview: ${reactTag}`)
+            ZegoExpressEngine.instance().startPreview(
+                {"reactTag": reactTag, "viewMode": ZegoViewMode.AspectFill, "backgroundColor": 0}, 
+                ZegoPublishChannel.Main
+            );
+        }
+    }
+
+    static stopPreview = () => {
+        if (Platform.OS === 'ios' && this.isOsVersionGreaterOrEqualThan(15)) {
+            console.log(this.TAG, `PipModule.stopPreview`)
+            PipModule.stopPreview()
+        } else {
+            console.log(this.TAG, `Express.stopPreview`)
+            ZegoExpressEngine.instance().stopPreview(ZegoPublishChannel.Main);
         }
     }
 
