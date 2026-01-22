@@ -7,6 +7,7 @@ import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/nativ
 import ZegoExpressEngine, {ZegoPublishChannel, ZegoTextureView} from 'zego-express-engine-reactnative';
 import MinimizingHelper from './minimizing_helper';
 import PipModuleHelper from './PipModuleHelper';
+import StreamHelper from './StreamHelper';
 
 const Preview: React.FC = () => {
   const TAG = 'Preview'
@@ -56,17 +57,14 @@ const Preview: React.FC = () => {
       }
 
       console.log(TAG, 'startPreview')
-      ZegoExpressEngine.instance().startPreview(
-        {"reactTag": findNodeHandle(previewRef.current), "viewMode": 0, "backgroundColor": 0}, 
-        ZegoPublishChannel.Main
-      );
+      StreamHelper.startPreview(findNodeHandle(previewRef.current))
 
       console.log(TAG, 'startPublishingStream')
       ZegoExpressEngine.instance().startPublishingStream(
         hostStreamID, 
         ZegoPublishChannel.Main, 
         undefined
-      );
+      )
     })
 
     return () => {
@@ -75,7 +73,7 @@ const Preview: React.FC = () => {
 
   const onClickBack = () => {
     ZegoExpressEngine.instance().stopPublishingStream(ZegoPublishChannel.Main);
-    ZegoExpressEngine.instance().stopPreview(ZegoPublishChannel.Main);
+    StreamHelper.stopPreview();
     ZegoExpressEngine.instance().logoutRoom(roomID);
     console.log(TAG, `logoutRoom, room:${roomID}`);
   
