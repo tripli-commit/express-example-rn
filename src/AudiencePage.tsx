@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 
 import ZegoExpressEngine, {ZegoTextureView} from 'zego-express-engine-reactnative';
-import MinimizingHelper from './minimizing_helper';
 import PipModuleHelper from './PipModuleHelper';
 import StreamHelper from './StreamHelper';
 
@@ -17,7 +16,7 @@ const Audience: React.FC = () => {
   const { params } = useRoute();
   const { roomID, userID, hostStreamID } = params;
   
-  const textureRef = useRef<ZegoTextureView | null>(null);
+  const playingTextureRef = useRef<ZegoTextureView | null>(null);
   const [isShowTopButton, setIsShowTopButton] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [rebindOnLayout, setRebindOnLayout] = useState(false);
@@ -57,7 +56,7 @@ const Audience: React.FC = () => {
 
       console.log(TAG, 'startPlayingStream')
       StreamHelper.setIosPipStreamID(hostStreamID)
-      StreamHelper.startPlayingStream(hostStreamID, findNodeHandle(textureRef.current));
+      StreamHelper.startPlayingStream(hostStreamID, findNodeHandle(playingTextureRef.current));
     });
 
     return () => {
@@ -83,7 +82,7 @@ const Audience: React.FC = () => {
   const onTextureLayout = (event: LayoutChangeEvent) => {
     if (rebindOnLayout) {
       setRebindOnLayout(false);
-      StreamHelper.startPlayingStream(hostStreamID, findNodeHandle(textureRef.current));
+      StreamHelper.startPlayingStream(hostStreamID, findNodeHandle(playingTextureRef.current));
     }
   };
 
@@ -91,7 +90,11 @@ const Audience: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <ZegoTextureView ref={textureRef} style={isFullscreen ? styles.fullscreenView : styles.centeredView} onLayout={onTextureLayout} />
+      <ZegoTextureView
+        ref={playingTextureRef} 
+        style={isFullscreen ? styles.fullscreenView : styles.centeredView} 
+        onLayout={onTextureLayout}
+      />
 
       { isShowTopButton ? <View style={[styles.top_btn_container, {top: insets.top}]}>
         <TouchableOpacity style={styles.backBtnPos} onPress={onClickBack}>
@@ -101,9 +104,9 @@ const Audience: React.FC = () => {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.minimizeBtnPos} onPress={onClickResize}>
+        <TouchableOpacity style={styles.resizeBtnPos} onPress={onClickResize}>
           <Image 
-            style={styles.minimizeBtnImage} 
+            style={styles.resizeBtnImage}
             source={require('./resources/icon_minimize.png')} // 替换为你的图片路径
           />
         </TouchableOpacity>
@@ -144,13 +147,13 @@ const styles = StyleSheet.create({
   },
   backBtnImage: {
   },
-  minimizeBtnPos: {
+  resizeBtnPos: {
     top: 10,
     marginLeft: 50,
     width: 20,
     height: 20,
   },
-  minimizeBtnImage: {
+  resizeBtnImage: {
   },
 });
 

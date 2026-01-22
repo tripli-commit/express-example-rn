@@ -28,8 +28,8 @@ RCT_EXPORT_METHOD(startPlayingStream:(NSDictionary *)map)
     
     RCTView *rctView = (RCTView *)[self->_bridge.uiManager viewForReactTag: reactTag];
     
-    NSLog(@"[PipModule] startPlayingStream: %@, reactTag: %@, viewMode: %@, rnVideoView: %@", streamID, reactTag, viewMode, rctView);
-    [[PipManager sharedInstance] startPlayingStream:streamID rnVideoView:rctView viewMode:viewMode.unsignedIntValue];
+    NSLog(@"[PipModule] startPlayingStream: %@, reactTag: %@, viewMode: %@, rnPlayingView: %@", streamID, reactTag, viewMode, rctView);
+    [[PipManager sharedInstance] startPlayingStream:streamID rnPlayingView:rctView viewMode:viewMode.unsignedIntValue];
   });
 }
 

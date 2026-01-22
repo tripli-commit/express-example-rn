@@ -13,14 +13,18 @@ API_AVAILABLE(ios(15.0))
 
 @property (nonatomic, strong) AVPictureInPictureController *pipControl;
 
-@property (nonatomic, strong) RCTView *rnVideoView;
-@property (nonatomic, strong) AVSampleBufferDisplayLayer *rnLayer;
+// for playing stream
+@property (nonatomic, assign) ZegoViewMode playingViewMode;
+@property (nonatomic, strong) RCTView *rnPlayingView;
+@property (nonatomic, strong) AVSampleBufferDisplayLayer *rnPlayingLayer;
 
-@property (nonatomic, strong) KitRemoteView *remoteVideoView;
-@property (nonatomic, strong) AVSampleBufferDisplayLayer *remoteLayer;
+@property (nonatomic, strong) KitRemoteView *pipPlayingView;
+@property (nonatomic, strong) AVSampleBufferDisplayLayer *pipPlayingLayer;
 
-@property (nonatomic, assign) ZegoViewMode viewMode;
+
 @property (nonatomic, assign) BOOL inBackground;
+
+@property (nonatomic, assign) BOOL isCustomVideoRenderEnabled;
 
 @end
 
@@ -46,22 +50,14 @@ API_AVAILABLE(ios(15.0))
   return self;
 }
 
-- (void)startPlayingStream:(NSString *)streamID rnVideoView:(RCTView *)rnVideoView viewMode:(ZegoViewMode)viewMode {
-  self.viewMode = viewMode;
+- (void)startPlayingStream:(NSString *)streamID rnPlayingView:(RCTView *)rnPlayingView viewMode:(ZegoViewMode)viewMode {
+  self.playingViewMode = viewMode;
   
   // 为 rn view 添加用于自定义渲染的 layer，没找到就添加一个
-  [self addRnLayerWithView:rnVideoView];
+  [self addRnLayerWithPlayingView:rnPlayingView];
   
-  [[ZegoExpressEngine sharedEngine] enableHardwareDecoder:YES];
-
-  // 开始自定义渲染，在渲染回调中投递到不同 layer
-  ZegoCustomVideoRenderConfig *renderConfig = [[ZegoCustomVideoRenderConfig alloc] init];
-  renderConfig.bufferType = ZegoVideoBufferTypeCVPixelBuffer;
-  renderConfig.frameFormatSeries = ZegoVideoFrameFormatSeriesRGB;
-
-  NSLog(@"enableCustomVideoRender: YES");
-  [[ZegoExpressEngine sharedEngine] enableCustomVideoRender:YES config:renderConfig];
-  [[ZegoExpressEngine sharedEngine] setCustomVideoRenderHandler:self];
+  [self enableCustomVideoRender];
+  
   [[ZegoExpressEngine sharedEngine] startPlayingStream:streamID];
 
   // 如果 pip 可用
@@ -78,45 +74,65 @@ API_AVAILABLE(ios(15.0))
       AVPictureInPictureVideoCallViewController *pipCallVC = [AVPictureInPictureVideoCallViewController new];
       pipCallVC.preferredContentSize = CGSizeMake(9, 16);
 
-      AVPictureInPictureControllerContentSource *contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithActiveVideoCallSourceView:rnVideoView contentViewController:pipCallVC];
+      AVPictureInPictureControllerContentSource *contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithActiveVideoCallSourceView:rnPlayingView contentViewController:pipCallVC];
 
       self.pipControl = [[AVPictureInPictureController alloc] initWithContentSource:contentSource];
       self.pipControl.delegate = self;
       self.pipControl.canStartPictureInPictureAutomaticallyFromInline = YES;
       [self.pipControl setValue:[NSNumber numberWithInt:1] forKey:@"controlsStyle"];
       
-      self.remoteVideoView = [[KitRemoteView alloc] initWithFrame:CGRectZero];
-      [pipCallVC.view addSubview:self.remoteVideoView];
+      self.pipPlayingView = [[KitRemoteView alloc] initWithFrame:CGRectZero];
+      [pipCallVC.view addSubview:self.pipPlayingView];
       
-      self.remoteVideoView.translatesAutoresizingMaskIntoConstraints = FALSE;
-      [self.remoteVideoView mas_makeConstraints:^(MASConstraintMaker *make) {
+      self.pipPlayingView.translatesAutoresizingMaskIntoConstraints = FALSE;
+      [self.pipPlayingView mas_makeConstraints:^(MASConstraintMaker *make) {
           make.edges.equalTo(pipCallVC.view);
       }];
       
-      self.remoteLayer = [self createAVSampleBufferDisplayLayerWithViewMode:self.viewMode];
-      [self.remoteVideoView addDisplayLayer:self.remoteLayer];
+      self.pipPlayingLayer = [self createAVSampleBufferDisplayLayerWithViewMode:self.playingViewMode];
+      [self.pipPlayingView addDisplayLayer:self.pipPlayingLayer];
     }
   }
 }
 
 - (void)stopPlayingStream:(NSString *)streamID {
   [[ZegoExpressEngine sharedEngine] stopPlayingStream:streamID];
-  NSLog(@"enableCustomVideoRender: NO");
-  [[ZegoExpressEngine sharedEngine] enableCustomVideoRender:NO config:NULL];
+
+  // Don't disable customVideoRender, otherwise you’ll encounter error 1011003.
+//  NSLog(@"enableCustomVideoRender: NO");
+//  [[ZegoExpressEngine sharedEngine] enableCustomVideoRender:NO config:NULL];
+
   [self enableMultiTaskForSDK:FALSE];
   
-  [self.rnVideoView removeObserver:self forKeyPath:@"bounds"];
-  self.rnLayer = NULL;
-  self.rnVideoView = NULL;
+  [self.rnPlayingView removeObserver:self forKeyPath:@"bounds"];
+  self.rnPlayingLayer = NULL;
+  self.rnPlayingView = NULL;
   
-  self.remoteLayer = NULL;
-  self.remoteVideoView = NULL;
+  self.pipPlayingLayer = NULL;
+  self.pipPlayingView = NULL;
 }
 
 - (void)notifyPagePipEnable:(BOOL)pipEnable pageName:(NSString *)pageName {
   if (!pipEnable) {
     [self.pipControl stopPictureInPicture];
     self.pipControl = NULL;
+  }
+}
+
+- (void)enableCustomVideoRender {
+  if (NO == self.isCustomVideoRenderEnabled) {
+    [[ZegoExpressEngine sharedEngine] enableHardwareDecoder:YES];
+
+    // 开始自定义渲染，在渲染回调中投递到不同 layer
+    ZegoCustomVideoRenderConfig *renderConfig = [[ZegoCustomVideoRenderConfig alloc] init];
+    renderConfig.bufferType = ZegoVideoBufferTypeCVPixelBuffer;
+    renderConfig.frameFormatSeries = ZegoVideoFrameFormatSeriesRGB;
+
+    NSLog(@"enableCustomVideoRender: YES");
+    [[ZegoExpressEngine sharedEngine] enableCustomVideoRender:YES config:renderConfig];
+    [[ZegoExpressEngine sharedEngine] setCustomVideoRenderHandler:self];
+    
+    self.isCustomVideoRenderEnabled = YES;
   }
 }
 
@@ -155,10 +171,13 @@ API_AVAILABLE(ios(15.0))
     }
 }
 
-- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
-    if ([keyPath isEqualToString:@"bounds"] && object == self.rnVideoView) {
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
+{
+    if ([keyPath isEqualToString:@"bounds"]) {
       CGRect newBounds = [[change objectForKey:NSKeyValueChangeNewKey] CGRectValue];
-      self.rnLayer.frame = newBounds;
+      if (object == self.rnPlayingView) {
+        self.rnPlayingLayer.frame = newBounds;
+      }
     }
 }
 
@@ -205,19 +224,22 @@ API_AVAILABLE(ios(15.0))
 }
 
 #pragma mark - ZegoCustomVideoRenderHandler
-- (void)onRemoteVideoFrameCVPixelBuffer:(CVPixelBufferRef)buffer param:(ZegoVideoFrameParam *)param streamID:(NSString *)streamID
+
+- (void)onRemoteVideoFrameCVPixelBuffer:(CVPixelBufferRef)buffer
+                                  param:(ZegoVideoFrameParam *)param
+                               streamID:(NSString *)streamID
 {
-    AVSampleBufferDisplayLayer *destLayer = self.inBackground ? self.remoteLayer : self.rnLayer;
+    AVSampleBufferDisplayLayer *destLayer = self.inBackground ? self.pipPlayingLayer : self.rnPlayingLayer;
   
     CMSampleBufferRef sampleBuffer = [self createSampleBuffer:buffer];
     if (sampleBuffer) {
         [destLayer enqueueSampleBuffer:sampleBuffer];
         if (destLayer.status == AVQueuedSampleBufferRenderingStatusFailed) {
             if (-11847 == destLayer.error.code) {
-              if (destLayer == self.remoteLayer) {
-                [self performSelectorOnMainThread:@selector(rebuildRemoteLayer) withObject:NULL waitUntilDone:YES];
-              } else if (destLayer == self.rnLayer) {
-                [self performSelectorOnMainThread:@selector(rebuildRNLayer) withObject:NULL waitUntilDone:YES];
+              if (destLayer == self.pipPlayingLayer) {
+                [self performSelectorOnMainThread:@selector(rebuildPipPlayingLayer) withObject:NULL waitUntilDone:YES];
+              } else if (destLayer == self.rnPlayingLayer) {
+                [self performSelectorOnMainThread:@selector(rebuildRnPlayingLayer) withObject:NULL waitUntilDone:YES];
               }
             }
         }
@@ -247,60 +269,60 @@ API_AVAILABLE(ios(15.0))
     return sampleBuffer;
 }
 
-- (void)addRnLayerWithView:(RCTView *)rnView {
-  NSLog(@"addRnLayerWithView, frame: %@", NSStringFromCGRect(rnView.frame));
-  if (self.rnVideoView != rnView) {
-    [self.rnVideoView removeObserver:self forKeyPath:@"bounds"];
-    self.rnVideoView = rnView;
+- (void)addRnLayerWithPlayingView:(RCTView *)rnView {
+  NSLog(@"addRnLayerWithPlayingView, frame: %@", NSStringFromCGRect(rnView.frame));
+  if (self.rnPlayingView != rnView) {
+    [self.rnPlayingView removeObserver:self forKeyPath:@"bounds"];
+    self.rnPlayingView = rnView;
   } else {
-    self.rnLayer.frame = rnView.frame;
+    self.rnPlayingLayer.frame = rnView.frame;
   }
   
   BOOL isFoundLayer = FALSE;
-  for (CALayer *layer in self.rnVideoView.layer.sublayers) {
+  for (CALayer *layer in self.rnPlayingView.layer.sublayers) {
       if ([layer.name isEqualToString:kKitDisplayLayerName]) {
         isFoundLayer = TRUE;
-        self.rnLayer = (AVSampleBufferDisplayLayer *)layer;
+        self.rnPlayingLayer = (AVSampleBufferDisplayLayer *)layer;
         break;
       }
   }
   
   if (!isFoundLayer) {
-    self.rnLayer = [self createAVSampleBufferDisplayLayerWithViewMode:self.viewMode];
-    self.rnLayer.name = kKitDisplayLayerName;
-    [self.rnVideoView.layer addSublayer:self.rnLayer];
-    self.rnLayer.frame = self.rnVideoView.bounds;
+    self.rnPlayingLayer = [self createAVSampleBufferDisplayLayerWithViewMode:self.playingViewMode];
+    self.rnPlayingLayer.name = kKitDisplayLayerName;
+    [self.rnPlayingView.layer addSublayer:self.rnPlayingLayer];
+    self.rnPlayingLayer.frame = self.rnPlayingView.bounds;
     
-    NSLog(@"add rnlayer: %@ in rnView: %@", self.rnLayer, self.rnVideoView);
+    NSLog(@"add rnlayer: %@ in rnView: %@", self.rnPlayingLayer, self.rnPlayingView);
   }
   
-  [self.rnVideoView addObserver:self forKeyPath:@"bounds" options:NSKeyValueObservingOptionNew context:nil];
+  [self.rnPlayingView addObserver:self forKeyPath:@"bounds" options:NSKeyValueObservingOptionNew context:nil];
 }
 
-- (void)rebuildRNLayer {
-  NSLog(@"rebuildRNLayer");
+- (void)rebuildRnPlayingLayer {
+  NSLog(@"rebuildRnPlayingLayer");
 
   @synchronized(self) {
-    if (self.rnLayer) {
-      [self.rnLayer removeFromSuperlayer];
-      self.rnLayer = nil;
+    if (self.rnPlayingLayer) {
+      [self.rnPlayingLayer removeFromSuperlayer];
+      self.rnPlayingLayer = nil;
     }
   
-    [self addRnLayerWithView:self.rnVideoView];
+    [self addRnLayerWithPlayingView:self.rnPlayingView];
   }
 }
 
-- (void)rebuildRemoteLayer {
-  NSLog(@"rebuildRemoteLayer");
+- (void)rebuildPipPlayingLayer {
+  NSLog(@"rebuildPipPlayingLayer");
 
   @synchronized(self) {
-    if (self.remoteLayer) {
-      [self.remoteLayer removeFromSuperlayer];
-      self.remoteLayer = nil;
+    if (self.pipPlayingLayer) {
+      [self.pipPlayingLayer removeFromSuperlayer];
+      self.pipPlayingLayer = nil;
     }
   
-    self.remoteLayer = [self createAVSampleBufferDisplayLayerWithViewMode:self.viewMode];
-    [self.remoteVideoView addDisplayLayer:self.remoteLayer];
+    self.pipPlayingLayer = [self createAVSampleBufferDisplayLayerWithViewMode:self.playingViewMode];
+    [self.pipPlayingView addDisplayLayer:self.pipPlayingLayer];
   }
 }
 

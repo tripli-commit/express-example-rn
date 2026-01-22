@@ -1,7 +1,6 @@
 import { NativeModules, NodeHandle, Platform } from 'react-native';
 import { getSystemVersion } from 'react-native-device-info';
-
-import ZegoExpressEngine from 'zego-express-engine-reactnative';
+import ZegoExpressEngine, { ZegoViewMode } from 'zego-express-engine-reactnative';
 
 const { PipModule } = NativeModules;
 
@@ -28,13 +27,13 @@ export default class StreamHelper {
         {
             console.log(this.TAG, `PipModule.startPlayingStream: ${streamID}`)
             PipModule.startPlayingStream(
-                {streamID: streamID, reactTag: reactTag, viewMode: 1}
+                {streamID: streamID, reactTag: reactTag, viewMode: ZegoViewMode.AspectFill}
             )
         } else {
             console.log(this.TAG, `Express.startPlayingStream: ${streamID}`)
             ZegoExpressEngine.instance().startPlayingStream(
                 streamID, 
-                {"reactTag": reactTag, "viewMode": 1, "backgroundColor": 0},
+                {"reactTag": reactTag, "viewMode": ZegoViewMode.AspectFill, "backgroundColor": 0},
                 {}
             )
         }

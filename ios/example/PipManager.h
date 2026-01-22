@@ -11,8 +11,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (instancetype)sharedInstance;
 
-- (void)startPlayingStream:(NSString *)streamID rnVideoView:(RCTView *)rnVideoView viewMode:(ZegoViewMode)viewMode;
+- (void)startPlayingStream:(NSString *)streamID rnPlayingView:(RCTView *)rnPlayingView viewMode:(ZegoViewMode)viewMode;
 - (void)stopPlayingStream:(NSString *)streamID;
+
 - (void)notifyPagePipEnable:(BOOL)pipEnable pageName:(NSString *)pageName;
 
 @end
