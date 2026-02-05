@@ -7,24 +7,8 @@ const { PipModule } = NativeModules;
 export default class StreamHelper {
     static TAG = 'StreamHelper'
 
-    static iosPipStreamID = ''
-
-    static setIosPipStreamID = (streamID: string) => {
-        console.log(this.TAG, `change iosPipStream: ${this.iosPipStreamID} => ${streamID}`)
-        let hasChanged = false
-        if (this.iosPipStreamID !== streamID && this.iosPipStreamID !== '') {
-            this.stopPlayingStream(this.iosPipStreamID)
-            hasChanged = true
-        }
-        this.iosPipStreamID = streamID
-        return hasChanged;
-    }
-
     static startPlayingStream = (streamID: string, reactTag: null | NodeHandle) => {
-        if (Platform.OS === 'ios' 
-            && this.isOsVersionGreaterOrEqualThan(15) 
-            && streamID === this.iosPipStreamID)
-        {
+        if (Platform.OS === 'ios' && this.isOsVersionGreaterOrEqualThan(15)) {
             console.log(this.TAG, `PipModule.startPlayingStream: ${streamID}`)
             PipModule.startPlayingStream(
                 {streamID: streamID, reactTag: reactTag, viewMode: ZegoViewMode.AspectFill}
@@ -44,15 +28,11 @@ export default class StreamHelper {
             return;
         }
         
-        if (Platform.OS === 'ios' 
-            && this.isOsVersionGreaterOrEqualThan(15) 
-            && streamID === this.iosPipStreamID)
-        {
+        if (Platform.OS === 'ios' && this.isOsVersionGreaterOrEqualThan(15)) {
             console.log(this.TAG, `PipModule.stopPlayingStream: ${streamID}`)
             PipModule.stopPlayingStream({
                 streamID: streamID
             })
-            this.iosPipStreamID = ''
         } else {
             console.log(this.TAG, `Express.stopPlayingStream: ${streamID}`)
             ZegoExpressEngine.instance().stopPlayingStream(streamID);
@@ -82,8 +62,24 @@ export default class StreamHelper {
         }
     }
 
+    static configPipModeRendering = (streamID: null | string, reactTag: null | NodeHandle) => {
+        if (Platform.OS === 'ios' && this.isOsVersionGreaterOrEqualThan(15)) {
+            console.log(this.TAG, `PipModule.configPipModeRendering stream: ${streamID}`)
+            PipModule.configPipModeRendering(
+                {streamID: streamID, reactTag: reactTag, viewMode: ZegoViewMode.AspectFill}
+            )
+        }
+    }
+
+    static closePipModeRendering = () => {
+        if (Platform.OS === 'ios' && this.isOsVersionGreaterOrEqualThan(15)) {
+            console.log(this.TAG, `PipModule.closePipModeRendering`)
+            PipModule.closePipModeRendering()
+        }
+    }
+
     static isOsVersionGreaterOrEqualThan = (compareVersion: number) => {
         const version = parseInt(getSystemVersion(), 10);
         return version >= compareVersion;
-    };
+    }
 }

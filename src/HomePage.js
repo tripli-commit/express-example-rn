@@ -27,6 +27,7 @@ import KeyCenter from '../KeyCenter';
 import MinimizingHelper from './minimizing_helper';
 import RoomConstants from './RoomConstants';
 import PipModuleHelper from './PipModuleHelper';
+import Util from './Util';
 
 const granted = (Platform.OS == 'android' ? PermissionsAndroid.check(
                                               PermissionsAndroid.PERMISSIONS.CAMERA,
@@ -64,7 +65,8 @@ class Home extends Component {
     });
     this.props.navigation.navigate('Preview', {
       roomID: RoomConstants.roomID,
-      userID: RoomConstants.hostID,
+      userID: Util.getRandomUserID(),
+      publishStreamID: Util.getRandomUserID(),
     });
   }
 
@@ -80,8 +82,7 @@ class Home extends Component {
     });
     this.props.navigation.navigate('Audience', {
       roomID: RoomConstants.roomID,
-      userID: RoomConstants.audienceID,
-      hostStreamID: RoomConstants.hostID,
+      userID: Util.getRandomUserID(),
     });
   }
 
@@ -154,7 +155,7 @@ class Home extends Component {
               </View>
               <View style={styles.buttomContainer}>
                 <Button onPress={this.onClickPreview.bind(this)}
-                        title="Start preview and publish"/>
+                        title="As host"/>
               </View>
               <View style={styles.descContainer}>
               </View>
@@ -165,7 +166,7 @@ class Home extends Component {
               </View>
               <View style={styles.buttomContainer}>
                 <Button onPress={this.onClickAudience.bind(this)}
-                        title="Watch host"/>
+                        title="As audience"/>
               </View>
               <View style={styles.descContainer}>
               </View>

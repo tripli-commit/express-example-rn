@@ -15,8 +15,7 @@ const Preview: React.FC = () => {
   const navigation = useNavigation();
 
   const { params } = useRoute();
-  const { roomID, userID } = params;
-  const hostStreamID = userID;
+  const { roomID, userID, publishStreamID } = params;
   
   const previewRef = useRef();  
   const [isShowTopButton, setIsShowTopButton] = useState(true);
@@ -61,7 +60,7 @@ const Preview: React.FC = () => {
 
       console.log(TAG, 'startPublishingStream')
       ZegoExpressEngine.instance().startPublishingStream(
-        hostStreamID, 
+        publishStreamID, 
         ZegoPublishChannel.Main, 
         undefined
       )
@@ -81,7 +80,7 @@ const Preview: React.FC = () => {
   };
 
   const onClickMinimize = () => {
-    MinimizingHelper.instance().setStreamActionInMinimized('Preview', roomID, hostStreamID);
+    MinimizingHelper.instance().setStreamActionInMinimized('Preview', roomID, publishStreamID);
     MinimizingHelper.instance().notifyMinimize();
     navigation.goBack();
   };
