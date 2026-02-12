@@ -65,7 +65,7 @@
     NSParameterAssert(result == 0 && videoInfo != NULL);
     
     CMSampleBufferRef sampleBuffer = NULL;
-    result = CMSampleBufferCreateForImageBuffer(kCFAllocatorDefault,pixelBuffer, true, NULL, NULL, videoInfo, &timing, &sampleBuffer);
+    result = CMSampleBufferCreateForImageBuffer(kCFAllocatorDefault, pixelBuffer, true, NULL, NULL, videoInfo, &timing, &sampleBuffer);
     NSParameterAssert(result == 0 && sampleBuffer != NULL);
     CFRelease(videoInfo);
     CFArrayRef attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, YES);

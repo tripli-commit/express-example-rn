@@ -75,7 +75,7 @@ RCT_EXPORT_METHOD(configPipModeRendering:(NSDictionary *)map) {
       rctView = (RCTView *)[self->_bridge.uiManager viewForReactTag: reactTag];
     }
     
-    [[ZegoPrebuiltLog shared] write:[NSString stringWithFormat:@"[PipModule] configPipModeRendering, stream: %@, rnPlayingView:%lu", streamID, (unsigned long)rctView.hash]];
+    [[ZegoPrebuiltLog shared] write:[NSString stringWithFormat:@"[PipModule] configPipModeRendering, stream: %@, rnPlayingView: %lu", streamID, (unsigned long)rctView.hash]];
     
     if (rctView != NULL) {
       [[ControlManager sharedInstance].pipRenderController configPipModeRenderingWithStream:streamID rnPlayingView:rctView viewMode:viewMode.unsignedIntValue];

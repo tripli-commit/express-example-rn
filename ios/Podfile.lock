@@ -8,7 +8,6 @@ PODS:
   - hermes-engine (0.81.4):
     - hermes-engine/Pre-built (= 0.81.4)
   - hermes-engine/Pre-built (0.81.4)
-  - Masonry (1.1.0)
   - RCT-Folly (2024.11.18.00):
     - boost
     - DoubleConversion
@@ -2448,7 +2447,6 @@ DEPENDENCIES:
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
-  - Masonry
   - RCT-Folly (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
   - RCTRequired (from `../node_modules/react-native/Libraries/Required`)
@@ -2524,7 +2522,6 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
-    - Masonry
     - SocketRocket
     - ZegoExpressEngine
     - ZegoPrebuiltLog
@@ -2693,7 +2690,6 @@ SPEC CHECKSUMS:
   fmt: a40bb5bd0294ea969aaaba240a927bd33d878cdd
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
   hermes-engine: 35c763d57c9832d0eef764316ca1c4d043581394
-  Masonry: 678fab65091a9290e40e2832a55e7ab731aad201
   RCT-Folly: 846fda9475e61ec7bcbf8a3fe81edfcaeb090669
   RCTDeprecation: c0ed3249a97243002615517dff789bf4666cf585
   RCTRequired: 58719f5124f9267b5f9649c08bf23d9aea845b23
@@ -2768,6 +2764,6 @@ SPEC CHECKSUMS:
   ZegoPrebuiltLog: 36aa4f5cf84ddc09dcb605c94d41a21d708b8649
   ZIPFoundation: dfd3d681c4053ff7e2f7350bc4e53b5dba3f5351
 
-PODFILE CHECKSUM: 22c59d880af9bb3bf6e2815fde5967a3cbae00b3
+PODFILE CHECKSUM: ec99b3ae57a6b044c74055f6e4550b70586f765c
 
 COCOAPODS: 1.16.2

@@ -7,7 +7,6 @@
 
 #import "PipRenderController.h"
 #import <AVKit/AVKit.h>
-#import "Masonry.h"
 #import "CustomRenderUtil.h"
 
 @import ZegoPrebuiltLog;
@@ -20,6 +19,7 @@
 @property (nonatomic, assign) ZegoViewMode pipViewMode;
 @property (nonatomic, strong) UIView *pipRenderView;
 @property (nonatomic, strong) AVSampleBufferDisplayLayer *pipRenderLayer;
+@property (nonatomic, assign) int frameCount;
 
 @end
 
@@ -57,12 +57,17 @@
   [pipCallVC.view addSubview:self.pipRenderView];
   
   self.pipRenderView.translatesAutoresizingMaskIntoConstraints = FALSE;
-  [self.pipRenderView mas_makeConstraints:^(MASConstraintMaker *make) {
-      make.edges.equalTo(pipCallVC.view);
-  }];
+  [NSLayoutConstraint activateConstraints:@[
+    [self.pipRenderView.leadingAnchor constraintEqualToAnchor:pipCallVC.view.leadingAnchor],
+    [self.pipRenderView.trailingAnchor constraintEqualToAnchor:pipCallVC.view.trailingAnchor],
+    [self.pipRenderView.topAnchor constraintEqualToAnchor:pipCallVC.view.topAnchor],
+    [self.pipRenderView.bottomAnchor constraintEqualToAnchor:pipCallVC.view.bottomAnchor],
+  ]];
+  
   
   self.pipRenderLayer = [CustomRenderUtil addRenderLayerWithPlayingView:self.pipRenderView viewMode:viewMode];
   self.pipRenderLayer.frame = self.pipRenderView.bounds;
+  self.frameCount = 0;
   [self.pipRenderView addObserver:self forKeyPath:@"bounds" options:NSKeyValueObservingOptionNew context:nil];
   
   self.pipViewMode = viewMode;
@@ -75,6 +80,11 @@
 
 - (void)closePipModeRendering {
   [self.pipController stopPictureInPicture];
+  
+  if (self.pipRenderView) {
+    [self.pipRenderView removeObserver:self forKeyPath:@"bounds"];
+  }
+  
   self.pipRenderLayer = NULL;
   self.pipRenderView = NULL;
   self.pipController = NULL;
@@ -97,12 +107,10 @@
                         change:(NSDictionary *)change
                        context:(void *)context
 {
-  if ([keyPath isEqualToString:@"bounds"]) {
+  if (object == self.pipRenderView && [keyPath isEqualToString:@"bounds"]) {
     CGRect newBounds = [[change objectForKey:NSKeyValueChangeNewKey] CGRectValue];
-    if (object == self.pipRenderView) {
-      self.pipRenderLayer.frame = newBounds;
-      [[ZegoPrebuiltLog shared] write:[NSString stringWithFormat:@"[PipRenderController] set layer frame: %@", NSStringFromCGRect(self.pipRenderLayer.frame)]];
-    }
+    [[ZegoPrebuiltLog shared] write:[NSString stringWithFormat:@"[PipRenderController] layer frame changed: %@ -> %@", NSStringFromCGRect(self.pipRenderLayer.frame), NSStringFromCGRect(newBounds)]];
+    self.pipRenderLayer.frame = newBounds;
   }
 }
 
@@ -118,7 +126,15 @@
   if (destLayer == NULL) {
     return;
   }
-
+  
+  self.frameCount += 1;
+  if (self.frameCount == 1) {
+    [[ZegoPrebuiltLog shared] write:[NSString stringWithFormat:@"[PipRenderController] first layer frame, width:%.0zu, height:%.0zu", CVPixelBufferGetWidth(buffer), CVPixelBufferGetHeight(buffer)]];
+  }
+  if (self.frameCount <= 2) {
+    return;
+  }
+  
   CMSampleBufferRef sampleBuffer = [CustomRenderUtil createSampleBuffer:buffer];
   if (sampleBuffer) {
     [destLayer enqueueSampleBuffer:sampleBuffer];
@@ -129,6 +145,7 @@
         [[ZegoPrebuiltLog shared] write:[NSString stringWithFormat:@"[PipRenderController] rebuildLayer, streamID:%@", streamID]];
         self.pipRenderLayer = [CustomRenderUtil addRenderLayerWithPlayingView:self.pipRenderView viewMode:self.pipViewMode];
         self.pipRenderLayer.frame = self.pipRenderView.bounds;
+        self.frameCount = 0;
       }
     }
     CFRelease(sampleBuffer);

@@ -33,7 +33,6 @@ target 'example' do
     )
   end
 
-  pod 'Masonry'
   pod 'ZegoPrebuiltLog'
   
 end
